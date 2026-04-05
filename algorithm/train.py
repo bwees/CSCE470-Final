@@ -50,14 +50,9 @@ def train_mf(df, d=20, epochs=10):
         rmse = np.sqrt(sq_error_sum / len(ratings))
         tqdm.write(f"Epoch {e+1}/{epochs} | RMSE: {rmse:.6f}")
 
-    return U, V
+    return V
 
-
-# load ratings.csv
 df = pd.read_csv("../data/movielens/ml-32m/ratings_subset.csv")
 
-U, V = train_mf(df, epochs=200, d=25)
-
-# Save latent factors and raw-id mappings.
-np.save("U.npy", U)
+V = train_mf(df, epochs=200, d=25)
 np.save("V.npy", V)
