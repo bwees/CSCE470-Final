@@ -42,7 +42,7 @@
 
     <AppShellSidebar class="pt-2" bind:open>
       <Stack class="pe-4">
-        <NavbarItem icon={mdiStarBox} title="Popular" href="/" />
+        <NavbarItem icon={mdiStarBox} title="Popular" href="/popular" />
         <NavbarItem icon={mdiHeart} title="Favorites" href="/favorites" />
         <NavbarItem icon={mdiListBox} title="My Watchlists" href="/watchlist" expanded {items} />
       </Stack>
