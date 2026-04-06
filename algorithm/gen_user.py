@@ -4,8 +4,8 @@ OUTPUT_PATH = "test.csv"
 USER_ID = 25
 N = 50
 
-ratings = pd.read_csv("../data/movielens/ml-32m/ratings.csv")
-allMovies = pd.read_csv("../data/movielens/ml-32m/movies.csv")
+ratings = pd.read_csv("data/movielens/ml-32m/ratings.csv")
+allMovies = pd.read_csv("data/movielens/ml-32m/movies.csv")
 
 user_rows = ratings[ratings["userId"] == USER_ID].copy()
 

@@ -12,10 +12,10 @@ def create_user_vector(V, user, reg=0.1):
 def recommend_for_new_user(top_n):
     # Load the data
     user_watchlist = pd.read_csv("test.csv")
-    movies_reference = pd.read_csv("../data/movielens/ml-32m/movies.csv")
+    movies_reference = pd.read_csv("data/movielens/ml-32m/movies.csv")
     V = np.load("V.npy")
 
-    id_to_index = json.load(open("../data/movielens/ml-32m/movie_id_mapping.json"))
+    id_to_index = json.load(open("data/movielens/ml-32m/movie_id_mapping.json"))
     id_to_index = {int(k): int(v) for k, v in id_to_index.items()}
     index_to_id = {v: k for k, v in id_to_index.items()}
 

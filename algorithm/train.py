@@ -52,7 +52,7 @@ def train_mf(df, d=20, epochs=10):
 
     return V
 
-df = pd.read_csv("../data/movielens/ml-32m/ratings_subset.csv")
+df = pd.read_csv("data/movielens/ml-32m/ratings_subset.csv")
 
 V = train_mf(df, epochs=200, d=25)
 np.save("V.npy", V)
