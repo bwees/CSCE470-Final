@@ -1,42 +1,61 @@
-# sv
+# Web: SvelteKit + Cloudflare D1 + Drizzle
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This app is configured for:
 
-## Creating a project
+- Cloudflare Workers (`@sveltejs/adapter-cloudflare`)
+- D1 database binding (`DB`)
+- Drizzle ORM + Drizzle Kit migrations
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+## Install
 
 ```sh
-# recreate this project
-pnpm dlx sv@0.14.1 create --template minimal --types ts --add prettier --install pnpm web
+pnpm install
 ```
 
-## Developing
+## Configure D1
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Create the database:
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+pnpm wrangler d1 create csce470-web-db
 ```
 
-## Building
+Copy the returned `database_id` into [wrangler.toml](wrangler.toml) under `[[d1_databases]]`.
 
-To create a production version of your app:
+## Drizzle Files
+
+- Config: [drizzle.config.ts](drizzle.config.ts)
+- Schema: [src/lib/server/db/schema.ts](src/lib/server/db/schema.ts)
+- Runtime DB helper: [src/lib/server/db/index.ts](src/lib/server/db/index.ts)
+- SQL migrations: [migrations](migrations)
+
+## Migration Workflow
+
+1. Update schema in [src/lib/server/db/schema.ts](src/lib/server/db/schema.ts)
+2. Generate SQL migration:
 
 ```sh
-npm run build
+pnpm db:generate
 ```
 
-You can preview the production build with `npm run preview`.
+3. Apply locally:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+pnpm db:migrate:local
+```
+
+4. Apply remotely:
+
+```sh
+pnpm db:migrate:remote
+```
+
+## Useful Scripts
+
+- `pnpm dev`: Vite dev server
+- `pnpm preview`: build + `wrangler dev`
+- `pnpm deploy`: build + `wrangler deploy`
+- `pnpm cf:types`: regenerate Cloudflare Worker types
+- `pnpm db:generate`: generate SQL migrations from Drizzle schema
+- `pnpm db:migrate:local`: apply migrations to local D1
+- `pnpm db:migrate:remote`: apply migrations to remote D1

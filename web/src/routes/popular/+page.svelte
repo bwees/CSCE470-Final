@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { getPopularMovies } from '$lib/endpoints/movies.remote';
+  import MoviePoster from '$lib/components/MoviePoster.svelte';
+  import { getPopularMovies } from '$lib/endpoints/tmdb.remote';
   import { Heading, LoadingSpinner } from '@immich/ui';
 
   const movies = getPopularMovies();
@@ -17,10 +18,6 @@
 
 <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
   {#each movies.current ?? [] as movie}
-    <div class="flex flex-col items-center gap-2 rounded-lg bg-gray-800 p-4">
-      <img src={`/api/poster?tmdbId=${movie.id}`} alt="Movie Poster" />
-      <h2 class="text-center text-lg font-semibold">{movie.title}</h2>
-      <p class="text-sm text-gray-600">Release Date: {movie.release_date}</p>
-    </div>
+    <MoviePoster {movie} />
   {/each}
 </div>

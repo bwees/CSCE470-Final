@@ -4,3 +4,4 @@
 test.csv
 recommendations.csv
 __pycache__/
+node_modules/

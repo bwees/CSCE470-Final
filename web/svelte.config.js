@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@sveltejs/adapter-cloudflare';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -10,7 +10,12 @@ const config = {
     },
   },
   kit: {
-    adapter: adapter(),
+    adapter: adapter({
+      routes: {
+        include: ['/*'],
+        exclude: ['<all>'],
+      },
+    }),
     experimental: {
       remoteFunctions: true,
     },
