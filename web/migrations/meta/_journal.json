@@ -15,6 +15,13 @@
       "when": 1775672235544,
       "tag": "0001_tough_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1775847908345,
+      "tag": "0002_nebulous_nemesis",
+      "breakpoints": true
     }
   ]
 }

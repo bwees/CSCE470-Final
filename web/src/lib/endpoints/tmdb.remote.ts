@@ -1,54 +1,81 @@
 import { query } from '$app/server';
-import { ALLOWED_TMDB_IDS } from '$lib/server/allowed-tmdb-ids';
-import { tmdbFetch } from '$lib/server/tmdb';
+import { getDB } from '$lib/server/db';
+import { schema } from '$lib/server/db/schema';
 import type { TMDBMovie, TMDBMovieDetails } from '$lib/types';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import * as v from 'valibot';
 
-const ALLOWED_TMDB_ID_SET = new Set<number>(ALLOWED_TMDB_IDS);
-
-function filterAllowedMovies(movies: Array<TMDBMovie>) {
-  return movies.filter((movie) => ALLOWED_TMDB_ID_SET.has(movie.id));
-}
-
-async function fetchPopularPage(page: number): Promise<Array<TMDBMovie>> {
-  const r = await tmdbFetch(`https://api.themoviedb.org/3/movie/popular?page=${page}`);
-
-  if (!r.ok) {
-    console.error(`Failed to fetch popular movies page ${page}: ${r.status} ${r.statusText}`);
-    return [];
-  }
-
-  return (await r.json()).results as Array<TMDBMovie>;
+function toTMDBMovie(movie: {
+  movieId: number;
+  title: string;
+  releaseDate: string;
+  posterUrl: string | null;
+}): TMDBMovie {
+  return {
+    id: movie.movieId,
+    title: movie.title,
+    release_date: movie.releaseDate,
+    poster_path: movie.posterUrl,
+  };
 }
 
 export const getPopularMovies = query(async () => {
-  const pages = Array.from({ length: 10 }, (_, index) => index + 1);
-  const pageResults = await Promise.all(pages.map((page) => fetchPopularPage(page)));
-  const mergedMovies = pageResults.flat();
+  const db = getDB();
+  const movies = await db
+    .select()
+    .from(schema.movies)
+    .orderBy(desc(schema.movies.releaseDate))
+    .limit(200);
 
-  return filterAllowedMovies(mergedMovies);
+  return movies.map(toTMDBMovie);
 });
 
 export const searchMovies = query(v.string(), async (query: string) => {
-  const r = await tmdbFetch(
-    `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}`,
-  );
-
-  if (!r.ok) {
-    console.error(`Failed to search movies: ${r.status} ${r.statusText}`);
+  const db = getDB();
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
     return [];
   }
 
-  return filterAllowedMovies((await r.json()).results as Array<TMDBMovie>);
+  const movies = await db
+    .select()
+    .from(schema.movies)
+    .where(sql`lower(${schema.movies.title}) like ${`%${normalizedQuery}%`}`)
+    .orderBy(desc(schema.movies.releaseDate))
+    .limit(100);
+
+  return movies.map(toTMDBMovie);
+});
+
+export const getMoviesByIds = query(v.array(v.number()), async (movieIds: Array<number>) => {
+  const uniqueMovieIds = [...new Set(movieIds)].filter((id) => Number.isInteger(id));
+  if (uniqueMovieIds.length === 0) {
+    return [];
+  }
+
+  const db = getDB();
+  const movies = await db
+    .select()
+    .from(schema.movies)
+    .where(inArray(schema.movies.movieId, uniqueMovieIds));
+
+  return movies.map(toTMDBMovie);
 });
 
 export const getMovieDetails = query(v.number(), async (id: number) => {
-  const r = await tmdbFetch(`https://api.themoviedb.org/3/movie/${id}`);
+  const db = getDB();
+  const rows = await db.select().from(schema.movies).where(eq(schema.movies.movieId, id)).limit(1);
+  const movie = rows[0];
 
-  if (!r.ok) {
-    console.error(`Failed to fetch movie details for ID ${id}: ${r.status} ${r.statusText}`);
+  if (!movie) {
     return null;
   }
 
-  return (await r.json()) as TMDBMovieDetails;
+  return {
+    id: movie.movieId,
+    title: movie.title,
+    overview: movie.overview,
+    release_date: movie.releaseDate,
+    poster_path: movie.posterUrl,
+  } as TMDBMovieDetails;
 });

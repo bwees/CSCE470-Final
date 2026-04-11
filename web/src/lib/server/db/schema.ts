@@ -42,9 +42,18 @@ export const watchlistMovies = sqliteTable(
   ],
 );
 
+export const movies = sqliteTable('movies', {
+  movieId: integer('movie_id').primaryKey(),
+  title: text('title').notNull(),
+  overview: text('overview').notNull(),
+  releaseDate: text('release_date').notNull(),
+  posterUrl: text('poster_url'),
+});
+
 export const schema = {
   users,
   userMovieRatings,
   watchlists,
   watchlistMovies,
+  movies,
 };

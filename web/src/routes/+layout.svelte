@@ -1,6 +1,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import favicon from '$lib/assets/favicon.svg';
+  import { getUserWatchlists } from '$lib/endpoints/watchlists.remote';
   import {
     AppShell,
     AppShellHeader,
@@ -18,7 +20,9 @@
 
   let open = $state(true);
 
-  const items = [
+  let watchlists = getUserWatchlists();
+
+  const items = $derived([
     {
       icon: mdiPlus,
       title: 'Create Watchlist',
@@ -26,7 +30,14 @@
       class: 'text-primary',
       active: false,
     },
-  ];
+    ...(watchlists.current ?? []).map((watchlist) => ({
+      icon: mdiListBox,
+      title: watchlist.name,
+      href: `/watchlist/${watchlist.id}`,
+      class: '',
+      active: page.url.pathname === `/watchlist/${watchlist.id}`,
+    })),
+  ]);
 
   let { children } = $props();
 
@@ -66,7 +77,14 @@
       <AppShellSidebar class="pt-2" bind:open>
         <Stack class="pe-4">
           <NavbarItem icon={mdiStarBox} title="Popular" href="/popular" />
-          <NavbarItem icon={mdiListBox} title="My Watchlists" href="/watchlist" expanded {items} />
+          <NavbarItem
+            icon={mdiListBox}
+            title="My Movies"
+            href="/watchlist"
+            expanded
+            {items}
+            active={page.url.pathname == '/watchlist'}
+          />
         </Stack>
       </AppShellSidebar>
 

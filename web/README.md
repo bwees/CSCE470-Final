@@ -59,3 +59,16 @@ pnpm db:migrate:remote
 - `pnpm db:generate`: generate SQL migrations from Drizzle schema
 - `pnpm db:migrate:local`: apply migrations to local D1
 - `pnpm db:migrate:remote`: apply migrations to remote D1
+- `pnpm db:movies:populate:local`: fetch allowlisted movies from TMDB and upsert into local D1 at 25 requests/sec
+- `pnpm db:movies:populate:remote`: fetch allowlisted movies from TMDB and upsert into remote D1 at 25 requests/sec
+
+## Movie Metadata Backfill
+
+1. Ensure `TMDB_API_READ_KEY` is available in your shell.
+2. Apply the latest migration.
+3. Run one of:
+
+```sh
+pnpm db:movies:populate:local
+pnpm db:movies:populate:remote
+```

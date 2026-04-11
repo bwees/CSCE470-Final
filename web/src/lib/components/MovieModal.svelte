@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getMovieRating, updateMovieRating } from '$lib/endpoints/ratings.remote';
   import { getMovieDetails } from '$lib/endpoints/tmdb.remote';
+  import { addMovieToWatchlist, getUserWatchlists } from '$lib/endpoints/watchlists.remote';
   import type { ModalProps, TMDBMovie } from '$lib/types';
   import {
     Button,
@@ -25,6 +26,15 @@
 
   let details = $derived(getMovieDetails(movie.id));
   let userRating = $derived(await getMovieRating(movie.id));
+  let userWatchlists = await getUserWatchlists();
+  let watchlistOptions = $derived(
+    userWatchlists.map((watchlist) => ({
+      label: watchlist.name,
+      value: watchlist.id.toString(),
+      disabled: watchlist.movies.some((m) => m.movieId === movie.id),
+    })) ?? [],
+  );
+
   let selectedWatchlist = $state<string | undefined>(undefined);
 
   function setUserRating(rating: number) {
@@ -35,6 +45,16 @@
       movieId: movie.id,
       rating,
     });
+  }
+
+  async function addToWatchlist(watchlistId: string) {
+    addMovieToWatchlist({
+      watchlist: Number.parseInt(watchlistId, 10),
+      movie: movie.id,
+    });
+
+    toastManager.success('Movie added to watchlist!');
+    selectedWatchlist = undefined;
   }
 </script>
 
@@ -82,14 +102,12 @@
           </Stack>
           <Stack>
             <Heading size="medium">Add to Watchlist</Heading>
-            <Select options={['test', 'test2']} bind:value={selectedWatchlist} />
+            <Select options={watchlistOptions} bind:value={selectedWatchlist} />
             <Button
               disabled={!selectedWatchlist || userRating === 0}
               variant="outline"
               color="primary"
-              onclick={() => {
-                toastManager.success('Added to watchlist!');
-              }}
+              onclick={() => addToWatchlist(selectedWatchlist!)}
             >
               Add to Watchlist
             </Button>

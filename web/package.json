@@ -7,6 +7,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "tmdb:allowlist:generate": "tsx ./scripts/generate-allowed-tmdb-ids.ts",
+    "db:movies:populate:local": "tsx ./scripts/populate-movies-db.ts",
+    "db:movies:populate:remote": "tsx ./scripts/populate-movies-db.ts --remote",
     "preview": "vite build && wrangler dev",
     "deploy": "vite build && wrangler deploy",
     "cf:types": "wrangler types",
