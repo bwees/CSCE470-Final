@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import MoviePoster from '$lib/components/MoviePoster.svelte';
   import { getUserRatings } from '$lib/endpoints/ratings.remote';
   import { createWatchlist } from '$lib/endpoints/watchlists.remote';
@@ -19,9 +20,7 @@
     selectedMovieIds = [...selectedMovieIds, movieId];
   }
 
-  async function submitWatchlist(event: SubmitEvent) {
-    event.preventDefault();
-
+  async function submitWatchlist() {
     const trimmedTitle = watchlistTitle.trim();
     if (!trimmedTitle || selectedMovieIds.length === 0) {
       return;
@@ -29,7 +28,7 @@
 
     isSubmitting = true;
     try {
-      await createWatchlist({
+      const newWatchlist = await createWatchlist({
         name: trimmedTitle,
         movieIds: selectedMovieIds,
       });
@@ -37,6 +36,8 @@
       toastManager.success('Watchlist created!');
       watchlistTitle = '';
       selectedMovieIds = [];
+
+      goto(`/watchlist/${newWatchlist.id}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create watchlist';
       toastManager.danger(message);
@@ -46,13 +47,13 @@
   }
 </script>
 
-<form class=" space-y-6" onsubmit={submitWatchlist}>
+<div class=" space-y-6">
   <div class="mb-6 flex flex-row items-center justify-between">
     <Heading size="medium">Create Watchlist</Heading>
     <Button
-      type="submit"
       form="watchlist-form"
       disabled={isSubmitting || selectedMovieIds.length === 0 || !watchlistTitle.trim()}
+      onclick={submitWatchlist}
     >
       {isSubmitting ? 'Creating...' : 'Create'}
     </Button>
@@ -104,4 +105,4 @@
       </div>
     {/if}
   </div>
-</form>
+</div>
