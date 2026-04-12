@@ -1,7 +1,19 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import MoviePoster from '$lib/components/MoviePoster.svelte';
-  import { getWatchlistById } from '$lib/endpoints/watchlists.remote';
-  import { Button, Heading, HStack, LoadingSpinner, Text } from '@immich/ui';
+  import { deleteWatchlist, getWatchlistById } from '$lib/endpoints/watchlists.remote';
+  import {
+    Button,
+    ConfirmModal,
+    Heading,
+    HStack,
+    IconButton,
+    LoadingSpinner,
+    modalManager,
+    Text,
+    toastManager,
+  } from '@immich/ui';
+  import { mdiTrashCan } from '@mdi/js';
 
   type WatchlistMovie = {
     movieId: number;
@@ -18,17 +30,27 @@
   const watchlistQuery = $derived(isValidWatchlistId ? getWatchlistById(watchlistId) : undefined);
   const movies = $derived((watchlistQuery?.current?.movies ?? []) as Array<WatchlistMovie>);
 
-  function formatReleaseDate(releaseDate: string) {
-    const date = new Date(releaseDate);
-    if (Number.isNaN(date.getTime())) {
-      return releaseDate;
+  async function deleteList() {
+    const confirm = await modalManager.show(ConfirmModal, {
+      title: 'Delete Watchlist',
+      prompt: 'Are you sure you want to delete this watchlist? This action cannot be undone.',
+      confirmText: 'Delete',
+      confirmColor: 'danger',
+      icon: mdiTrashCan,
+    });
+
+    if (!confirm) {
+      return;
     }
 
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    try {
+      await deleteWatchlist(watchlistId);
+      toastManager.success('Watchlist deleted!');
+      goto('/watchlist');
+    } catch (error) {
+      toastManager.danger('Failed to delete watchlist');
+      return;
+    }
   }
 </script>
 
@@ -53,9 +75,18 @@
       </Text>
     </div>
 
-    <Button variant="outline" size="small" href={`/watchlist/${watchlistId}/recommendations`}>
-      View Recommendations
-    </Button>
+    <div class="flex flex-row items-center gap-2">
+      <Button variant="outline" size="small" href={`/watchlist/${watchlistId}/recommendations`}>
+        View Recommendations
+      </Button>
+      <IconButton
+        variant="outline"
+        color="danger"
+        icon={mdiTrashCan}
+        aria-label="Delete watchlist"
+        onclick={deleteList}
+      />
+    </div>
   </HStack>
 
   {#if movies.length === 0}
