@@ -1,7 +1,7 @@
 <script lang="ts">
   import MoviePoster from '$lib/components/MoviePoster.svelte';
   import { getWatchlistById } from '$lib/endpoints/watchlists.remote';
-  import { Button, Heading, HStack, LoadingSpinner, Text } from '@immich/ui';
+  import { Heading, LoadingSpinner, Text } from '@immich/ui';
 
   type WatchlistMovie = {
     movieId: number;
@@ -44,19 +44,7 @@
   <Heading size="medium" class="mb-3">Watchlist not found</Heading>
   <Text color="muted">This watchlist may not exist or may belong to another user.</Text>
 {:else}
-  <HStack class=" items-start justify-between">
-    <div>
-      <Heading size="medium" class="mb-2">{watchlistQuery.current.name}</Heading>
-      <Text size="small" color="muted" class="mb-6 block">
-        {movies.length}
-        {movies.length === 1 ? 'movie' : 'movies'}
-      </Text>
-    </div>
-
-    <Button variant="outline" size="small" href={`/watchlist/${watchlistId}/recommendations`}>
-      View Recommendations
-    </Button>
-  </HStack>
+  <Heading size="medium" class="mb-2">Recommended Movies</Heading>
 
   {#if movies.length === 0}
     <Text color="muted">This watchlist is empty. Add movies from your rated list.</Text>
