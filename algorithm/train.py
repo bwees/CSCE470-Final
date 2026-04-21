@@ -30,17 +30,16 @@ def train_mf(df, d=20, epochs=10):
             u_pred = U[u].copy()
             v_pred = V[v].copy()
 
-            # Objective (observed-only): A_ij - <U_i, V_j>)^2
+            # Objective (observed-only): (A_ij - <U_i, V_j>)^2
             prediction = u_pred.dot(v_pred)
             err = rating - prediction
-
-            # Track total error for RMSE calculation
             sq_error_sum += err * err
 
             # SGD optimize
             learning_rate = 0.01
-            du = learning_rate * err * v_pred
-            dv = learning_rate * err * u_pred
+            reg = 0.02
+            du = learning_rate * (err * v_pred - reg * u_pred)
+            dv = learning_rate * (err * u_pred - reg * v_pred)
 
             # Apply the updates to the user and item vectors
             U[u] = u_pred + du
@@ -54,5 +53,5 @@ def train_mf(df, d=20, epochs=10):
 
 df = pd.read_csv("data/movielens/ml-32m/ratings_subset.csv")
 
-V = train_mf(df, epochs=200, d=25)
+V = train_mf(df, epochs=300, d=20)
 np.save("V.npy", V)

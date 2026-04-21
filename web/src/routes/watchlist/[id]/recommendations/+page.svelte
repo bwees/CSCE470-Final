@@ -1,41 +1,15 @@
 <script lang="ts">
   import MoviePoster from '$lib/components/MoviePoster.svelte';
-  import { getWatchlistById } from '$lib/endpoints/watchlists.remote';
+  import { getRecommendations } from '$lib/endpoints/recommendation.remote.js';
   import { Heading, LoadingSpinner, Text } from '@immich/ui';
-
-  type WatchlistMovie = {
-    movieId: number;
-    title: string;
-    overview: string;
-    releaseDate: string;
-    posterUrl: string | null;
-  };
 
   let { params } = $props();
 
-  const watchlistId = $derived(Number.parseInt(params.id, 10));
-  const isValidWatchlistId = $derived(Number.isInteger(watchlistId) && watchlistId > 0);
-  const watchlistQuery = $derived(isValidWatchlistId ? getWatchlistById(watchlistId) : undefined);
-  const movies = $derived((watchlistQuery?.current?.movies ?? []) as Array<WatchlistMovie>);
-
-  function formatReleaseDate(releaseDate: string) {
-    const date = new Date(releaseDate);
-    if (Number.isNaN(date.getTime())) {
-      return releaseDate;
-    }
-
-    return date.toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
+  const watchlistQuery = $derived(getRecommendations(Number.parseInt(params.id)));
+  const movies = $derived(watchlistQuery?.current ?? []);
 </script>
 
-{#if !isValidWatchlistId}
-  <Heading size="medium" class="mb-3">Invalid watchlist id</Heading>
-  <Text color="muted">Open a valid watchlist from the sidebar to view its movies.</Text>
-{:else if watchlistQuery?.error}
+{#if watchlistQuery?.error}
   <Heading size="medium" class="mb-3">Watchlist</Heading>
   <p class="text-red-500">Failed to load watchlist: {watchlistQuery.error.message}</p>
 {:else if watchlistQuery?.loading}
@@ -53,10 +27,10 @@
       {#each movies as movie}
         <MoviePoster
           movie={{
-            id: movie.movieId,
+            id: movie.id,
             title: movie.title,
-            release_date: movie.releaseDate,
-            poster_path: movie.posterUrl,
+            release_date: movie.release_date,
+            poster_path: movie.poster_path,
           }}
         />
       {/each}

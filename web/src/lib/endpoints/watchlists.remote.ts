@@ -1,9 +1,12 @@
 import { command, query } from '$app/server';
 import { getDB } from '$lib/server/db';
 import { schema } from '$lib/server/db/schema';
+import { ML_TO_TMDB } from '$lib/server/ml-to-tmdb';
 import { getUser } from '$lib/server/utils';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import * as v from 'valibot';
+
+import { getUserRatings } from './ratings.remote';
 
 const createWatchlistDto = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1)),
@@ -47,6 +50,104 @@ export const createWatchlist = command(createWatchlistDto, async (dto) => {
 
   return { id: watchlistId };
 });
+
+const createWatchlistFromMovieLensDto = v.object({
+  name: v.pipe(v.string(), v.trim(), v.minLength(1)),
+  ratings: v.array(
+    v.object({
+      movieLensId: v.number(),
+      rating: v.pipe(v.number(), v.minValue(0), v.maxValue(5)),
+    }),
+  ),
+});
+
+export const createWatchlistFromMovieLens = command(
+  createWatchlistFromMovieLensDto,
+  async (dto) => {
+    const db = getDB();
+    const user = getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const byTmdb = new Map<number, number>();
+    let unmapped = 0;
+    for (const { movieLensId, rating } of dto.ratings) {
+      const tmdbId = ML_TO_TMDB[movieLensId];
+      if (tmdbId === undefined) {
+        unmapped += 1;
+        continue;
+      }
+      // Last rating wins if the same movie appears twice.
+      byTmdb.set(tmdbId, Math.round(rating));
+    }
+
+    let insertedMovies = 0;
+    let insertedRatings = 0;
+    let watchlistId: number | null = null;
+
+    if (byTmdb.size > 0) {
+      const tmdbIds = [...byTmdb.keys()];
+      const existing = await db
+        .select({ movieId: schema.movies.movieId })
+        .from(schema.movies)
+        .where(inArray(schema.movies.movieId, tmdbIds));
+      const knownTmdbIds = new Set(existing.map((row) => row.movieId));
+
+      const validPairs = tmdbIds
+        .filter((id) => knownTmdbIds.has(id))
+        .map((id) => ({ movieId: id, rating: byTmdb.get(id)! }));
+
+      if (validPairs.length > 0) {
+        const [inserted] = await db
+          .insert(schema.watchlists)
+          .values({ userId: user, name: dto.name })
+          .returning({ id: schema.watchlists.id });
+
+        if (!inserted) {
+          throw new Error('Failed to create watchlist');
+        }
+        watchlistId = inserted.id;
+
+        await db.insert(schema.watchlistMovies).values(
+          validPairs.map(({ movieId }) => ({
+            watchlistId: inserted.id,
+            movieId,
+          })),
+        );
+        insertedMovies = validPairs.length;
+
+        for (const { movieId, rating } of validPairs) {
+          await db
+            .insert(schema.userMovieRatings)
+            .values({ userId: user, movieId, rating })
+            .onConflictDoUpdate({
+              target: [schema.userMovieRatings.userId, schema.userMovieRatings.movieId],
+              set: { rating },
+            });
+        }
+        insertedRatings = validPairs.length;
+      }
+    }
+
+    if (watchlistId === null) {
+      throw new Error('No movies from the CSV matched the movie database.');
+    }
+
+    getUserWatchlists().refresh();
+    getUserRatings().refresh();
+
+    return {
+      id: watchlistId,
+      total: dto.ratings.length,
+      insertedMovies,
+      insertedRatings,
+      unmapped,
+      missing: dto.ratings.length - unmapped - insertedMovies,
+    };
+  },
+);
 
 export const getUserWatchlists = query(async () => {
   const db = getDB();

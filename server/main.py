@@ -13,14 +13,14 @@ artifacts = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    V_PATH = os.path.join("..", "algorithm", "V.npy")
-    MAP_PATH = os.path.join("..", "algorithm", "data", "movielens", "ml-32m", "movie_id_mapping.json")
+    V_PATH = "artifacts/V.npy"
+    MAP_PATH = "artifacts/movie_id_mapping.json"
     
     artifacts["V"] = np.load(V_PATH)
     with open(MAP_PATH, "r") as f:
         mapping = json.load(f)
-        artifacts["id_to_idx"] = {int(k): int(v) for k, v in mapping.items()}
-        artifacts["idx_to_id"] = {v: k for k, v in artifacts["id_to_idx"].items()}
+        artifacts["tmdb_to_idx"] = {int(k): int(v) for k, v in mapping.items()}
+        artifacts["idx_to_tmdb"] = {v: k for k, v in artifacts["tmdb_to_idx"].items()}
     
     yield
     # Shutdown
@@ -29,22 +29,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="FilmFinder API", lifespan=lifespan)
 
 class Rating(BaseModel):
-    movieID: int
+    movieId: int  # TMDB id
     rating: float
 
 @app.post("/recommend")
 async def recommend(user_input: list[Rating], top_n: int = 10):
     V = artifacts["V"]
-    id_to_idx = artifacts["id_to_idx"]
-    
-    # Filter and map Input
+    tmdb_to_idx = artifacts["tmdb_to_idx"]
+
+    # Filter and map Input (TMDB id -> contiguous matrix index)
     valid_indices = []
     valid_ratings = []
     for r in user_input:
-        if r.movieID in id_to_idx:
-            valid_indices.append(id_to_idx[r.movieID])
+        if r.movieId in tmdb_to_idx:
+            valid_indices.append(tmdb_to_idx[r.movieId])
             valid_ratings.append(r.rating)
-    
+
     if not valid_indices:
         return {"message": "No recognized movies provided."}
 
@@ -59,14 +59,13 @@ async def recommend(user_input: list[Rating], top_n: int = 10):
     # Score and Filter
     scores = np.matmul(V, u_new)
     scores[valid_indices] = -1e9  # Don't recommend what they just rated
-    
+
     top_idx = np.argsort(scores)[::-1][:top_n]
-    
-    # Return results 
-    # Format: [{"movieID": ..., "score": ...}]
+
+    # Return results (movieId is a TMDB id)
     return [
         {
-            "movieID": artifacts["idx_to_id"][idx],
+            "movieId": artifacts["idx_to_tmdb"][idx],
             "score": round(float(scores[idx]), 4)
         }
         for idx in top_idx

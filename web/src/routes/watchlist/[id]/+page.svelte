@@ -25,9 +25,8 @@
 
   let { params } = $props();
 
-  const watchlistId = $derived(Number.parseInt(params.id, 10));
-  const isValidWatchlistId = $derived(Number.isInteger(watchlistId) && watchlistId > 0);
-  const watchlistQuery = $derived(isValidWatchlistId ? getWatchlistById(watchlistId) : undefined);
+  const watchlistId = $derived(params.id);
+  const watchlistQuery = $derived(getWatchlistById(Number.parseInt(params.id)));
   const movies = $derived((watchlistQuery?.current?.movies ?? []) as Array<WatchlistMovie>);
 
   async function deleteList() {
@@ -44,7 +43,7 @@
     }
 
     try {
-      await deleteWatchlist(watchlistId);
+      await deleteWatchlist(Number.parseInt(params.id));
       toastManager.success('Watchlist deleted!');
       goto('/watchlist');
     } catch (error) {
@@ -54,10 +53,7 @@
   }
 </script>
 
-{#if !isValidWatchlistId}
-  <Heading size="medium" class="mb-3">Invalid watchlist id</Heading>
-  <Text color="muted">Open a valid watchlist from the sidebar to view its movies.</Text>
-{:else if watchlistQuery?.error}
+{#if watchlistQuery?.error}
   <Heading size="medium" class="mb-3">Watchlist</Heading>
   <p class="text-red-500">Failed to load watchlist: {watchlistQuery.error.message}</p>
 {:else if watchlistQuery?.loading}

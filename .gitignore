@@ -1,5 +1,4 @@
 .DS_Store
-*.npy
 .venv/
 test.csv
 recommendations.csv

@@ -1,7 +1,7 @@
 import pandas as pd
 
 OUTPUT_PATH = "test.csv"
-USER_ID = 25
+USER_ID = 15
 N = 50
 
 ratings = pd.read_csv("data/movielens/ml-32m/ratings.csv")

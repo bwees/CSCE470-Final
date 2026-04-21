@@ -6,9 +6,6 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "tmdb:allowlist:generate": "tsx ./scripts/generate-allowed-tmdb-ids.ts",
-    "db:movies:populate:local": "tsx ./scripts/populate-movies-db.ts",
-    "db:movies:populate:remote": "tsx ./scripts/populate-movies-db.ts --remote",
     "preview": "vite build && wrangler dev",
     "deploy": "vite build && wrangler deploy",
     "cf:types": "wrangler types",
@@ -42,6 +39,7 @@
   "dependencies": {
     "@mdi/js": "^7.4.47",
     "drizzle-orm": "^0.45.2",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "valibot": "^1.3.1"
   }
 }
