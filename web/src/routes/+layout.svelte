@@ -2,6 +2,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import favicon from '$lib/assets/favicon.svg';
+  import { getUserSharedLists } from '$lib/endpoints/sharing.remote';
   import { getUserWatchlists } from '$lib/endpoints/watchlists.remote';
   import {
     AppShell,
@@ -14,13 +15,21 @@
     Stack,
     TooltipProvider,
   } from '@immich/ui';
-  import { mdiListBox, mdiMagnify, mdiMovieRoll, mdiPlus, mdiStarBox } from '@mdi/js';
+  import {
+    mdiListBox,
+    mdiMagnify,
+    mdiMovieRoll,
+    mdiPlus,
+    mdiShareVariant,
+    mdiStarBox,
+  } from '@mdi/js';
   import { onMount } from 'svelte';
   import '../app.css';
 
   let open = $state(true);
 
   let watchlists = getUserWatchlists();
+  let sharedLists = getUserSharedLists();
 
   const items = $derived([
     {
@@ -38,6 +47,16 @@
       active: page.url.pathname === `/watchlist/${watchlist.id}`,
     })),
   ]);
+
+  const sharedItems = $derived(
+    (sharedLists.current ?? []).map((shared) => ({
+      icon: mdiShareVariant,
+      title: shared.name,
+      href: `/shared/${shared.id}`,
+      class: '',
+      active: page.url.pathname === `/shared/${shared.id}`,
+    })),
+  );
 
   let { children } = $props();
 
@@ -85,6 +104,16 @@
             {items}
             active={page.url.pathname == '/watchlist'}
           />
+          {#if sharedItems.length > 0}
+            <NavbarItem
+              icon={mdiShareVariant}
+              title="Shared Lists"
+              href="/watchlist"
+              expanded
+              items={sharedItems}
+              active={page.url.pathname.startsWith('/shared/')}
+            />
+          {/if}
         </Stack>
       </AppShellSidebar>
 

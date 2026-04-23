@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import MoviePoster from '$lib/components/MoviePoster.svelte';
+  import ShareWatchlistModal from '$lib/components/ShareWatchlistModal.svelte';
   import { deleteWatchlist, getWatchlistById } from '$lib/endpoints/watchlists.remote';
   import {
     Button,
@@ -13,7 +14,7 @@
     Text,
     toastManager,
   } from '@immich/ui';
-  import { mdiTrashCan } from '@mdi/js';
+  import { mdiShareVariant, mdiTrashCan } from '@mdi/js';
 
   type WatchlistMovie = {
     movieId: number;
@@ -51,6 +52,18 @@
       return;
     }
   }
+
+  function openShareModal() {
+    const shareCode = watchlistQuery?.current?.shareCode;
+    if (!shareCode) {
+      toastManager.danger('Share code not available');
+      return;
+    }
+    modalManager.show(ShareWatchlistModal, {
+      watchlistId: Number.parseInt(params.id),
+      shareCode,
+    });
+  }
 </script>
 
 {#if watchlistQuery?.error}
@@ -75,6 +88,13 @@
       <Button variant="outline" size="small" href={`/watchlist/${watchlistId}/recommendations`}>
         View Recommendations
       </Button>
+      <IconButton
+        variant="outline"
+        color="success"
+        icon={mdiShareVariant}
+        aria-label="Share watchlist"
+        onclick={openShareModal}
+      />
       <IconButton
         variant="outline"
         color="danger"

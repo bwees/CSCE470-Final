@@ -2,11 +2,33 @@ import { command, query } from '$app/server';
 import { getDB } from '$lib/server/db';
 import { schema } from '$lib/server/db/schema';
 import { ML_TO_TMDB } from '$lib/server/ml-to-tmdb';
+import { generateShareCode } from '$lib/server/share-code';
 import { getUser } from '$lib/server/utils';
 import { and, eq, inArray } from 'drizzle-orm';
 import * as v from 'valibot';
 
 import { getUserRatings } from './ratings.remote';
+
+async function insertWatchlistWithCode(
+  db: ReturnType<typeof getDB>,
+  values: { userId: string; name: string },
+): Promise<{ id: number; shareCode: string }> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const shareCode = generateShareCode();
+    try {
+      const [inserted] = await db
+        .insert(schema.watchlists)
+        .values({ ...values, shareCode })
+        .returning({ id: schema.watchlists.id, shareCode: schema.watchlists.shareCode });
+      if (inserted) {
+        return inserted;
+      }
+    } catch {
+      continue;
+    }
+  }
+  throw new Error('Failed to create watchlist');
+}
 
 const createWatchlistDto = v.object({
   name: v.pipe(v.string(), v.trim(), v.minLength(1)),
@@ -21,20 +43,10 @@ export const createWatchlist = command(createWatchlistDto, async (dto) => {
     throw new Error('User not authenticated');
   }
 
-  const insertedWatchlist = await db
-    .insert(schema.watchlists)
-    .values({
-      userId: user,
-      name: dto.name,
-    })
-    .returning({
-      id: schema.watchlists.id,
-    });
-
-  const watchlistId = insertedWatchlist[0]?.id;
-  if (!watchlistId) {
-    throw new Error('Failed to create watchlist');
-  }
+  const { id: watchlistId } = await insertWatchlistWithCode(db, {
+    userId: user,
+    name: dto.name,
+  });
 
   const uniqueMovieIds = [...new Set(dto.movieIds)];
   if (uniqueMovieIds.length > 0) {
@@ -100,14 +112,7 @@ export const createWatchlistFromMovieLens = command(
         .map((id) => ({ movieId: id, rating: byTmdb.get(id)! }));
 
       if (validPairs.length > 0) {
-        const [inserted] = await db
-          .insert(schema.watchlists)
-          .values({ userId: user, name: dto.name })
-          .returning({ id: schema.watchlists.id });
-
-        if (!inserted) {
-          throw new Error('Failed to create watchlist');
-        }
+        const inserted = await insertWatchlistWithCode(db, { userId: user, name: dto.name });
         watchlistId = inserted.id;
 
         await db.insert(schema.watchlistMovies).values(
@@ -223,6 +228,7 @@ export const getWatchlistById = query(v.number(), async (watchlistId: number) =>
     .select({
       watchlistId: schema.watchlists.id,
       watchlistName: schema.watchlists.name,
+      shareCode: schema.watchlists.shareCode,
       movieId: schema.movies.movieId,
       title: schema.movies.title,
       overview: schema.movies.overview,
@@ -241,6 +247,7 @@ export const getWatchlistById = query(v.number(), async (watchlistId: number) =>
   const watchlist = {
     id: rows[0].watchlistId,
     name: rows[0].watchlistName,
+    shareCode: rows[0].shareCode,
     movies: [] as Array<{
       movieId: number;
       title: string;

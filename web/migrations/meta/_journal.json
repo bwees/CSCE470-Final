@@ -22,6 +22,13 @@
       "when": 1775847908345,
       "tag": "0002_nebulous_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1776883187270,
+      "tag": "0003_shared_watchlists",
+      "breakpoints": true
     }
   ]
 }
