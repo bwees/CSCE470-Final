@@ -53,5 +53,5 @@ def train_mf(df, d=20, epochs=10):
 
 df = pd.read_csv("data/movielens/ml-32m/ratings_subset.csv")
 
-V = train_mf(df, epochs=300, d=20)
+V = train_mf(df, epochs=150, d=20)
 np.save("V.npy", V)

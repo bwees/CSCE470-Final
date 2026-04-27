@@ -1,10 +1,11 @@
-# pull a popularity-weighted subset of ratings for faster training
+# pull a subset of users with their full rating histories for faster training
 import pandas as pd
 import json
 
-SAMPLE_SIZE = 250000
+TARGET_RATINGS = 250000
 MIN_MOVIE_RATINGS = 10
 MIN_USER_RATINGS = 30
+RANDOM_STATE = 42
 
 ratings = pd.read_csv("data/movielens/ml-32m/ratings.csv")
 links = pd.read_csv("data/movielens/ml-32m/links.csv", usecols=["movieId", "tmdbId"])
@@ -25,9 +26,13 @@ df = df[movie_counts >= MIN_MOVIE_RATINGS]
 user_counts = df.groupby("userId")["rating"].transform("count")
 df = df[user_counts >= MIN_USER_RATINGS]
 
-# weight the sample by movie popularity so well-rated films get more coverage
-popularity_weights = df.groupby("tmdbId")["rating"].transform("count").astype(float)
-df_subset = df.sample(n=SAMPLE_SIZE, weights=popularity_weights, random_state=42)
+# sample whole users (not individual ratings) so each selected user keeps their full history;
+# shuffle users and accumulate their rating counts until we reach the target total
+ratings_per_user = df.groupby("userId").size()
+shuffled_users = ratings_per_user.sample(frac=1, random_state=RANDOM_STATE)
+cumulative = shuffled_users.cumsum()
+selected_users = shuffled_users[cumulative <= TARGET_RATINGS].index
+df_subset = df[df["userId"].isin(selected_users)].copy()
 
 # find unique userIds and tmdbIds in the subset
 unique_user_ids = df_subset["userId"].unique()
