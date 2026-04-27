@@ -11,15 +11,20 @@
   type ParsedRating = { movieLensId: number; rating: number };
 
   function parseCsv(text: string): ParsedRating[] {
-    const csv = Papa.parse(text);
+    const csv = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.trim().toLowerCase(),
+    });
 
-    let rows: ParsedRating[] = [];
+    const rows: ParsedRating[] = [];
     for (const line of csv.data) {
-      const typedLine = line as Record<string, string>;
-      rows.push({
-        movieLensId: Number.parseInt(typedLine['movieid']),
-        rating: Number.parseInt(typedLine['rating']),
-      });
+      const movieLensId = Number.parseInt(line['movieid'], 10);
+      const rating = Number.parseFloat(line['rating']);
+      if (Number.isNaN(movieLensId) || Number.isNaN(rating)) {
+        continue;
+      }
+      rows.push({ movieLensId, rating });
     }
     return rows;
   }
@@ -38,7 +43,7 @@
         name: trimmedTitle,
         ratings: parsed,
       });
-      toastManager.success('Created watchlist with ${result.insertedMovies} movie(s).');
+      toastManager.success(`Created watchlist with ${result.insertedMovies} movie(s).`);
       goto(`/watchlist/${result.id}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create watchlist';
