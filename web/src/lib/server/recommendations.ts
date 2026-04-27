@@ -1,7 +1,7 @@
-import { getDB } from './db';
-import { schema } from './db/schema';
 import type { TMDBMovie } from '$lib/types';
 import { inArray } from 'drizzle-orm';
+import { getDB } from './db';
+import { schema } from './db/schema';
 
 export type RatedMovie = { movieId: number; rating: number };
 type MovieRatingResult = { movieId: number; score: number };
@@ -9,7 +9,7 @@ type MovieRatingResult = { movieId: number; score: number };
 export async function fetchRecommendations(ratedMovies: RatedMovie[]): Promise<TMDBMovie[]> {
   if (ratedMovies.length === 0) return [];
 
-  const response = await fetch('http://localhost:8000/recommend?top_n=16', {
+  const response = await fetch('https://csce470.bwees.io/recommend?top_n=16', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(ratedMovies),
